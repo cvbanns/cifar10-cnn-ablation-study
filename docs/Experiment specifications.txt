@@ -1,0 +1,59 @@
+Part 1: Data Augmentation
+
+1. Add new augmentation layers such as RandomContrast, RandomBrightness, or RandomTranslation.
+   Which augmentation improves accuracy the most?
+
+2. Remove the current data augmentation entirely. How does this affect overfitting and
+   test accuracy?
+
+Part 2: CNN Architecture
+
+1. Add additional Conv2D layers or increase the number of filters. How does this affect
+   model performance and training time?
+
+2. Change the filter size from (3, 3) to (5, 5). What differences do you observe?
+
+Part 3: Pooling Layers
+
+1. Replace MaxPooling2D with AveragePooling2D. Compare the results.
+
+2. Remove one pooling layer. What happens to the model’s performance?
+
+Part 4: Regularization
+
+1. Modify the dropout rate (e.g., 0.3 or 0.7). Does the model overfit more or less?
+
+2. Add L2 regularization to convolutional or dense layers. What impact does this have
+   on validation accuracy? You may use the following example syntax:
+
+from tensorflow.keras import regularizers
+# Use L2 regularization inside a layer as:
+kernel_regularizer=regularizers.l2(0.001)
+
+Part 5: Optimizer and Learning Rate
+
+1. Replace the Adam optimizer with SGD (with and without momentum) or RMSprop.
+   Which optimizer performs best?
+
+2. Experiment with different learning rates. What happens when the learning rate is too
+   high or too low?
+
+Part 6: Training Parameters
+
+1. Increase the number of epochs from 2 to 10 or 20. How does accuracy change?
+
+2. Modify the batch size (e.g., 32 or 128). Observe the effect on training stability and
+   speed.
+
+Part 7: Visualization and Analysis
+
+1. Plot training and validation accuracy and loss curves. Identify signs of overfitting or
+   underfitting.
+
+2. Visualize misclassified images and explain possible reasons for the errors.
+
+Part 8: Prediction Analysis
+
+1. Compute precision and recall for one selected class (e.g., “cat”).
+
+2. Create a confusion matrix and analyze which classes are most frequently confused.
