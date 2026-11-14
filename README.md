@@ -1,159 +1,89 @@
-# CIFAR-10 CNN Ablation Study 📊🧠
+# CIFAR-10 CNN Ablation Study
 
-![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python&logoColor=white)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange?logo=tensorflow&logoColor=white)
-![Dataset](https://img.shields.io/badge/Dataset-CIFAR--10-green)
-![Task](https://img.shields.io/badge/Task-Image%20Classification-purple)
-![Notebook](https://img.shields.io/badge/Workflow-Jupyter-informational?logo=jupyter)
-![Study Type](https://img.shields.io/badge/Study-Ablation%20Analysis-red)
+A controlled TensorFlow/Keras study of training duration, CNN architecture, augmentation,
+dropout, and learning-rate scheduling. The selected CNN was trained from scratch and
+achieved **87.51% mean accuracy** on the official CIFAR-10 test set across three fixed
+seeds, exceeding the 78% target by 9.51 percentage points.
 
-A controlled, experiment-driven study of how common CNN design decisions affect image classification performance on the **CIFAR-10** dataset.
+## Results
 
-Instead of treating the project like a race for one final score, this repo focuses on something more useful: **what changed, what improved, what got worse, and why**.
+| Run | Mean validation accuracy ± SD | Mean test accuracy ± SD |
+| --- | ---: | ---: |
+| Original CNN, two epochs | 38.15% ± 8.85 pp | 38.00% ± 9.02 pp |
+| Original CNN, 30 epochs | 65.40% ± 1.02 pp | |
+| **Selected 30-epoch CNN** | **87.92% ± 0.20 pp** | **87.51% ± 0.08 pp** |
+| Restore original architecture | 76.66% ± 0.50 pp | |
+| Restore original augmentation | 84.39% ± 0.34 pp | |
+| Restore 0.50 dropout | 87.53% ± 0.47 pp | |
+| Restore constant learning rate | 85.91% ± 0.62 pp | |
 
----
+The selected CNN scored **87.45%, 87.60%, and 87.48%** on the test set for
+seeds 17, 29, and 43. The reproduced baseline scored 27.63%, 44.02%, and 42.35%.
+Standard deviations are sample estimates over the three seeds.
 
-## ✨ Project Overview
+- Within the original CNN's 30-epoch runs, the best mean validation accuracy
+  rose from 44.38% in the first two epochs to 65.40% over all 30 epochs.
+- Restoring the original architecture produced the largest validation drop
+  among the four reversions (11.26 percentage points).
+- Restoring the original augmentation or constant learning rate lowered
+  mean validation accuracy by 3.53 and 2.01 points, respectively. Restoring
+  0.50 dropout lowered it by 0.39 points, with the direction varying by seed.
+- Dog images classified as cats were the most frequent error for each seed
+  of the selected CNN.
 
-This project explores how standard convolutional neural network choices shape performance on small natural images.
+The [run data](results/controlled-study.json) includes all 21 training histories,
+per-seed metrics, checkpoint epochs, and the six test confusion matrices.
 
-Starting from a baseline CNN, I ran a sequence of controlled experiments around:
+## Evaluation protocol
 
-- 🎨 Data augmentation
-- 🧱 CNN architecture
-- 📐 Convolution filter size
-- 🏊 Pooling strategy
-- 🛡️ Regularization
-- ⚙️ Optimizer choice
-- 📉 Learning rate
-- ⏱️ Epoch count
-- 📦 Batch size
-- 🔍 Prediction and error analysis
+The official training set is split into 45,000 training images and 5,000 validation
+images, with 500 validation images per class. All runs use the same split (seed 2026),
+training seeds (17, 29, 43), batch size (64), Adam optimizer, and starting learning rate
+(0.001). Each run saves its highest-validation-accuracy checkpoint, using the first
+checkpoint in a tie. The highest mean validation accuracy among the 30-epoch
+configurations determines which one to test alongside the reproduced baseline.
 
-The work follows the structure of the original assignment while packaging it as a cleaner, experiment-based repo that shows the actual behavior of the model across design changes.
+The [original notebook](notebooks/cifar10_experiments.ipynb) is historical. Its
+45.40% baseline was logged after two epochs with the official test set passed as
+validation data. The new baseline preserves the original architecture, training
+duration, and augmentation, and uses the new split and checkpoint rule.
 
----
+## Experiment matrix
 
-## 🧪 What This Study Tries to Answer
+| Run | Comparison | Changed factor |
+| --- | --- | --- |
+| `baseline` | Historical reference under the new split | Original two-epoch recipe |
+| `baseline_30` | First two epochs of the same run | 30 epochs |
+| `final` | `baseline` | Combined 30-epoch candidate |
+| `original_architecture` | `final` | Original three-convolution architecture |
+| `original_augmentation` | `final` | Rotation and zoom in place of translation |
+| `original_dropout` | `final` | Dropout 0.5 instead of 0.25 |
+| `constant_lr` | `final` | Constant learning rate in place of cosine decay |
 
-This repo is built around a simple question:
+The candidate uses two 3×3 convolutions per block, batch normalization after each
+convolution, and global average pooling before the classifier. Its augmentation is
+horizontal flip and reflected translation up to four pixels. The architecture
+comparison measures that bundle of changes together. The runner applies the
+original flip, rotation, and zoom distributions with batched TensorFlow operations.
 
-> **Which CNN design choices actually help on CIFAR-10, and which ones just sound good on paper?**
+## Reproduce
 
-Ablation studies are useful because they force each decision to stand on its own. That makes it easier to see the tradeoffs behind learning stability, generalization, training cost, and architectural efficiency.
+Use Python 3.9. For native Windows GPU training, TensorFlow 2.10.1 requires CUDA
+11.2 and cuDNN 8.1. The commands below use mixed precision on a compatible GPU.
+CIFAR-10 is downloaded on the first run.
 
----
+```sh
+python -m pip install -r requirements.txt
+python study.py train --mixed-precision --experiments baseline baseline_30 final original_architecture original_augmentation original_dropout constant_lr
+python study.py test --mixed-precision --experiments baseline final
+```
 
-## 🏆 Key Results
+Each run writes epoch metrics, split fingerprint, run configuration, and checkpoint
+selection to `runs/<experiment>/<seed>/validation.json`. Test evaluation writes
+accuracy and a 10-class confusion matrix to `test.json` in the same directory. See the
+[experiment protocol](docs/Experiment%20specifications.txt) for comparison details.
 
-Some of the strongest outcomes in the reported runs came from:
+## Historical materials
 
-- ✅ Increasing training to **10 epochs**
-- ✅ Using **SGD with momentum**
-- ✅ Reducing dropout to **0.3**
-- ✅ Replacing max pooling with **AveragePooling2D**
-- ✅ Removing one pooling layer
-- ✅ Using larger **(5×5)** convolution filters
-
-### Best reported validation results
-
-| Experiment | Validation Accuracy |
-|-----------|---------------------:|
-| **10 epochs** | **0.5914** |
-| **SGD + momentum** | **0.5447** |
-| **Dropout 0.3** | **0.5327** |
-| **Remove one pooling layer** | **0.5045** |
-| **AveragePooling2D** | **0.5022** |
-| **Larger filters (5×5)** | **0.4901** |
-
-One of the clearest takeaways from the study: **training longer helped more than many of the architectural tweaks.**
-
----
-
-## 📌 Main Findings
-
-### 1) Data augmentation helped — but not all augmentation helped
-- `RandomContrast` gave the strongest result among the newly tested augmentation variants.
-- `RandomBrightness` performed terribly and stayed near chance level.
-- Removing augmentation reduced validation performance, which supports the idea that augmentation still improved generalization overall.
-
-### 2) Preserving spatial information mattered
-- `AveragePooling2D` outperformed `MaxPooling2D`.
-- Removing one pooling layer improved validation accuracy even further.
-
-This suggests the original architecture may have compressed spatial detail too aggressively for **32×32 CIFAR-10 images**.
-
-### 3) Bigger was not automatically better
-- Increasing filter counts to `(64, 128, 256)` made training slower and validation worse.
-- Switching from `(3×3)` to `(5×5)` filters improved validation accuracy, though with added training cost.
-
-So no, “more capacity” did not just magically fix things.
-
-### 4) Moderate regularization beat heavy regularization
-- `Dropout = 0.3` improved both training and validation accuracy.
-- `Dropout = 0.7` clearly underfit.
-- `L2 regularization` reduced validation accuracy in the reported run.
-
-### 5) Optimization choices had a huge effect
-- `SGD + momentum` gave the best validation accuracy among the tested optimizers.
-- `RMSprop` achieved stronger training accuracy but generalized worse.
-- Poor learning-rate choices caused near-chance behavior.
-
-### 6) More epochs helped the most
-- Moving from **2 epochs to 10 epochs** produced the biggest reported improvement.
-- Training curves suggested only mild overfitting later in training.
-
----
-
-## 📋 Experiment Summary
-
-| Experiment | Training Accuracy | Validation Accuracy | Observation |
-|-----------|------------------:|--------------------:|------------|
-| RandomContrast | 0.4345 | 0.4408 | Best added augmentation variant |
-| RandomBrightness | 0.1005 | 0.1000 | Too disruptive, failed to learn |
-| RandomTranslation | 0.3940 | 0.4341 | Helped with positional robustness |
-| No augmentation | 0.3953 | 0.4049 | Generalization dropped |
-| More filters (64,128,256) | 0.3964 | 0.3183 | Slower and worse |
-| Larger filters (5×5) | 0.4153 | 0.4901 | Better features, higher cost |
-| AveragePooling2D | 0.4408 | 0.5022 | Better than max pooling |
-| Remove one pooling layer | 0.4217 | 0.5045 | More spatial detail helped |
-| Dropout 0.3 | 0.4820 | 0.5327 | Best regularization setting tested |
-| Dropout 0.7 | 0.3240 | 0.3252 | Clear underfitting |
-| L2 regularization | 0.4426 | 0.4266 | Did not help here |
-| SGD | 0.4926 | 0.5041 | Strong baseline optimizer |
-| SGD + momentum | 0.4973 | 0.5447 | Best optimizer tested |
-| RMSprop | 0.5247 | 0.4731 | Strong training fit, weaker generalization |
-| 10 epochs | 0.5669 | 0.5914 | Biggest overall improvement |
-| Batch size 32 | 0.4219 | 0.4761 | Better generalization, slower |
-| Batch size 128 | 0.4226 | 0.4440 | Faster, but weaker validation |
-
-> All values above come from the accompanying written experiment report.
-
----
-
-## 🔍 Error Analysis
-
-The error analysis showed that many mistakes came from:
-
-- low-resolution ambiguity
-- visual similarity between classes
-- weak separation between some animal and vehicle categories
-
-### Common confusion patterns
-- **truck → automobile**
-- **airplane → ship**
-- several animal-class mix-ups
-
-A particularly interesting class-level result was for **cat**:
-
-- **Precision:** `0.4751`
-- **Recall:** `0.1810`
-
-That usually means the model was relatively cautious when predicting cats, but still missed a lot of true cat images.
-
-The confusion matrix and training-history plots tell a pretty consistent story:
-
-- the model improved steadily during training
-- visually similar classes caused the heaviest mistakes
-- mild overfitting appeared later in training
-
+The [original report](results/experiment-summary.pdf) and its plots describe the
+original notebook runs and their evaluation protocol.
